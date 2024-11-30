@@ -2,11 +2,12 @@
 
 Generate custom Ethereum addresses with specific prefixes and suffixes using multi-threaded vanity address generation.
 
-> Example: On MacBook M1 Max, finding an address with prefix="7777" and suffix="7777" using 10 threads takes approximately 1300 minutes.
+> On MacBook M1 Max, finding an address with prefix="7777" and suffix="7777" using 10 threads takes approximately 1300 minutes.
 
 📱 **Community Links**
 - Telegram Channel: [MimbleWimbleLAB](https://t.me/MimbleWimbleLAB)
 - Telegram Chat: [MimbleWimbleLAB_chat](https://t.me/MimbleWimbleLAB_chat)
+- Discord: [REDACTED]
 
 ## Features
 
