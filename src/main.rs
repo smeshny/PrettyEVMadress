@@ -48,13 +48,10 @@ fn find_vanity_address(target_prefix: &str, target_suffix: &str, threads: usize)
     let attempts_clone = Arc::clone(&attempts);
     let found_clone = Arc::clone(&found);
     thread::spawn(move || {
-        // Calculate expected attempts based on probability
         let expected_attempts = 1.0 / probability;
         
-        // Print initial estimation
         println!("Expected number of attempts: {:.0}", expected_attempts);
-        println!(); // Add empty line before progress
-
+        
         while !found_clone.load(Ordering::Relaxed) {
             thread::sleep(std::time::Duration::from_secs(1));
             let elapsed = start_time.elapsed();
@@ -67,22 +64,20 @@ fn find_vanity_address(target_prefix: &str, target_suffix: &str, threads: usize)
                 f64::INFINITY
             };
             
-            // Clear the line with spaces and return carriage
             print!("\r{}", " ".repeat(100)); // Clear previous line
             print!("\r[{}] Speed: {:.2} addr/s, Remaining: {:.2} min", 
                 current_time, speed, estimated_remaining_time
             );
             std::io::stdout().flush().unwrap();
         }
-        println!(); // Add newline when done
     });
 
     let handles: Vec<_> = (0..threads)
         .map(|_| {
             let found = Arc::clone(&found);
             let result = Arc::clone(&result);
-            let target_prefix = target_prefix.to_string();
-            let target_suffix = target_suffix.to_string();
+            let target_prefix = target_prefix.to_lowercase();
+            let target_suffix = target_suffix.to_lowercase();
             let attempts = Arc::clone(&attempts);
 
             thread::spawn(move || {
@@ -91,7 +86,7 @@ fn find_vanity_address(target_prefix: &str, target_suffix: &str, threads: usize)
                     let address = private_key_to_address(&private_key);
                     attempts.fetch_add(1, Ordering::Relaxed);
 
-                    let address_str = format!("{:x}", address);
+                    let address_str = format!("{:x}", address).to_lowercase();
                     if address_str.starts_with(&target_prefix) && address_str.ends_with(&target_suffix) {
                         if !found.swap(true, Ordering::Relaxed) {
                             let mut result_lock = result.lock().unwrap();
@@ -122,42 +117,69 @@ struct TargetSettings {
     prefix: String,
     suffix: String,
     threads: usize,
+    addresses_count: usize,
+}
+
+// Add this new function
+fn to_checksum_address(address: Address) -> String {
+    let address_hex = hex::encode(address.as_bytes());
+    let address_hash = hex::encode(keccak256(address_hex.as_bytes()));
+    
+    let mut checksum = String::with_capacity(42);
+    checksum.push_str("0x");
+    
+    for (i, ch) in address_hex.chars().enumerate() {
+        if ch >= 'a' && ch <= 'f' {
+            if address_hash.chars().nth(i).unwrap() >= '8' {
+                checksum.push(ch.to_ascii_uppercase());
+            } else {
+                checksum.push(ch);
+            }
+        } else {
+            checksum.push(ch);
+        }
+    }
+    
+    checksum
 }
 
 fn main() {
-    // Read the settings from the settings.toml file
     let settings_content = fs::read_to_string("settings.toml").expect("Failed to read settings.toml");
     let settings: Settings = toml::from_str(&settings_content).expect("Failed to parse settings.toml");
 
     let target_prefix = settings.target.prefix;
     let target_suffix = settings.target.suffix;
     let threads = settings.target.threads;
+    let addresses_count = settings.target.addresses_count;
 
-    // Add example address display
-    println!("Looking for address like: 0x{}[random]{}",
-        target_prefix,
-        target_suffix
-    );
-    println!("Starting address search...");
+    println!("Looking for {} addresses like: 0x{}[random]{}", 
+        addresses_count, target_prefix, target_suffix);
+    println!("Starting address search...\n");
     
-    let (private_key, address) = find_vanity_address(&target_prefix, &target_suffix, threads);
+    for i in 1..=addresses_count {
+        println!("Searching for address {}/{}", i, addresses_count);
+        let (private_key, address) = find_vanity_address(&target_prefix, &target_suffix, threads);
 
-    println!("Found address: 0x{:x}", address);
-    
-    // Get current timestamp
-    let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
-    
-    // Open file in append mode using OpenOptions
-    let mut file = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open("address_key_pair.txt")
-        .expect("Failed to open file");
-
-    // Write new entry with timestamp
-    writeln!(file, "\n[{}]\nAddress: 0x{:x}\nPrivate Key: 0x{}\n", 
-        timestamp, address, hex::encode(private_key.as_ref()))
-        .expect("Failed to write to file");
+        print!("\r{}", " ".repeat(100)); // Clear the progress line
+        let checksum_address = to_checksum_address(address);
+        println!("\rFound address: {}", checksum_address);
         
-    println!("Address-key pair saved to file!");
+        let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
+        
+        let mut file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("address_key_pair.txt")
+            .expect("Failed to open file");
+
+        writeln!(file, "\n[{}]\nAddress: {}\nPrivate Key: 0x{}\n", 
+            timestamp, checksum_address, hex::encode(private_key.as_ref()))
+            .expect("Failed to write to file");
+            
+        println!("Address-key pair saved to file!");
+        
+        if i < addresses_count {
+            println!(); // Add newline only between addresses, not after the last one
+        }
+    }
 }
