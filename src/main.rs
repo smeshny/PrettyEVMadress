@@ -11,6 +11,7 @@ use serde::Deserialize;
 use std::time::Instant;
 use chrono;
 use std::io::Write;
+use std::fs::OpenOptions;
 
 // Function to generate a random private key
 fn generate_private_key() -> SecretKey {
@@ -142,7 +143,21 @@ fn main() {
     let (private_key, address) = find_vanity_address(&target_prefix, &target_suffix, threads);
 
     println!("Found address: 0x{:x}", address);
-    fs::write("address_key_pair.txt", format!("Address: 0x{:x}\nPrivate Key: 0x{}", address, hex::encode(private_key.as_ref())))
+    
+    // Get current timestamp
+    let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
+    
+    // Open file in append mode using OpenOptions
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("address_key_pair.txt")
+        .expect("Failed to open file");
+
+    // Write new entry with timestamp
+    writeln!(file, "\n[{}]\nAddress: 0x{:x}\nPrivate Key: 0x{}\n", 
+        timestamp, address, hex::encode(private_key.as_ref()))
         .expect("Failed to write to file");
+        
     println!("Address-key pair saved to file!");
 }
