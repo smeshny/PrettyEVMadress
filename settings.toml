@@ -1,0 +1,5 @@
+[target]
+prefix = "777" # Prefix of the address
+suffix = "777" # Suffix of the address
+threads = 8 # Number of threads to use
+addresses_count = 5  # Number of addresses you want to generate
