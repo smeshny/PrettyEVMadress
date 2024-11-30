@@ -54,11 +54,13 @@ All application settings are configured through the `settings.toml` file. Below 
 prefix = "777"
 suffix = "777"
 threads = 8
+addresses_count = 5
 ```
 
 - `prefix`: The desired prefix for the Ethereum address.
 - `suffix`: The desired suffix for the Ethereum address.
 - `threads`: Number of threads to use for address generation.
+- `addresses_count`: Number of addresses you want to generate.
 
 ## Usage
 
