@@ -9,6 +9,8 @@ use hex;
 use std::fs;
 use serde::Deserialize;
 use std::time::Instant;
+use chrono;
+use std::io::Write;
 
 // Function to generate a random private key
 fn generate_private_key() -> SecretKey {
@@ -45,26 +47,34 @@ fn find_vanity_address(target_prefix: &str, target_suffix: &str, threads: usize)
     let attempts_clone = Arc::clone(&attempts);
     let found_clone = Arc::clone(&found);
     thread::spawn(move || {
+        // Calculate expected attempts based on probability
+        let expected_attempts = 1.0 / probability;
+        
+        // Print initial estimation
+        println!("Expected number of attempts: {:.0}", expected_attempts);
+        println!("Estimated total time: {:.2} minutes", (expected_attempts / 100_000.0) / 60.0);
+        println!(); // Add empty line before progress
+
         while !found_clone.load(Ordering::Relaxed) {
             thread::sleep(std::time::Duration::from_secs(1));
             let elapsed = start_time.elapsed();
             let total_attempts = attempts_clone.load(Ordering::Relaxed);
             let speed = total_attempts as f64 / elapsed.as_secs_f64();
-            println!("Current search speed: {:.2} addresses/second", speed);
-
-            if speed > 0.0 {
-                // Using probability theory to estimate remaining time
-                // Expected number of attempts = 1/probability
-                let expected_attempts = 1.0 / probability;
-                let remaining_attempts = expected_attempts - total_attempts as f64;
-                if remaining_attempts > 0.0 {
-                    let estimated_time = remaining_attempts / speed;
-                    println!("Estimated time remaining: {:.2} seconds (approximately {:.2} minutes)", 
-                            estimated_time, 
-                            estimated_time / 60.0);
-                }
-            }
+            let current_time = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+            let estimated_remaining_time = if speed > 0.0 {
+                (expected_attempts - total_attempts as f64) / speed / 60.0
+            } else {
+                f64::INFINITY
+            };
+            
+            // Clear the line with spaces and return carriage
+            print!("\r{}", " ".repeat(100)); // Clear previous line
+            print!("\r[{}] Speed: {:.2} addr/s, Remaining: {:.2} min", 
+                current_time, speed, estimated_remaining_time
+            );
+            std::io::stdout().flush().unwrap();
         }
+        println!(); // Add newline when done
     });
 
     let handles: Vec<_> = (0..threads)
