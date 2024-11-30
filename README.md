@@ -2,6 +2,8 @@
 
 Generate custom Ethereum addresses with specific prefixes and suffixes using multi-threaded vanity address generation.
 
+> Example: On MacBook M1 Max, finding an address with prefix="7777" and suffix="7777" using 10 threads takes approximately 1300 minutes.
+
 📱 **Community Links**
 - Telegram Channel: [MimbleWimbleLAB](https://t.me/MimbleWimbleLAB)
 - Telegram Chat: [MimbleWimbleLAB_chat](https://t.me/MimbleWimbleLAB_chat)
@@ -65,16 +67,6 @@ Simply run the application after configuring your settings in `settings.toml`:
 
 ```bash
 ./target/release/PrettyEVMadress
-```
-
-### Example
-
-Make sure your `settings.toml` file contains the desired configuration:
-
-```toml
-prefix = "abc"
-suffix = "xyz"
-threads = 4
 ```
 
 ### Data Storage
