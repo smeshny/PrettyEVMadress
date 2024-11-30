@@ -1,5 +1,5 @@
 [package]
-name = "vanity_eth"
+name = "pretty_evm_adress"
 version = "0.1.0"
 edition = "2021"
 
