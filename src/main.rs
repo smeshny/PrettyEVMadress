@@ -52,7 +52,6 @@ fn find_vanity_address(target_prefix: &str, target_suffix: &str, threads: usize)
         
         // Print initial estimation
         println!("Expected number of attempts: {:.0}", expected_attempts);
-        println!("Estimated total time: {:.2} minutes", (expected_attempts / 100_000.0) / 60.0);
         println!(); // Add empty line before progress
 
         while !found_clone.load(Ordering::Relaxed) {
@@ -133,7 +132,13 @@ fn main() {
     let target_suffix = settings.target.suffix;
     let threads = settings.target.threads;
 
+    // Add example address display
+    println!("Looking for address like: 0x{}[random]{}",
+        target_prefix,
+        target_suffix
+    );
     println!("Starting address search...");
+    
     let (private_key, address) = find_vanity_address(&target_prefix, &target_suffix, threads);
 
     println!("Found address: 0x{:x}", address);
